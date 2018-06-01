@@ -1,7 +1,7 @@
 let
     phpFpmSocket = "/run/phpfpm/phpfpm.sock";
     wrapOcc = pkgs: pkgs.stdenv.mkDerivation {
-        name = "occ-wrapped";
+        name = "occ";
         src = pkgs.nextcloud;
         buildInputs = [ pkgs.makeWrapper ];
         buildPhase = ''true'';
@@ -13,7 +13,7 @@ let
         '';
     };
     wrapCron = pkgs: pkgs.stdenv.mkDerivation {
-        name = "occ-wrapped";
+        name = "nexcloud-cron";
         src = pkgs.nextcloud;
         buildInputs = [ pkgs.makeWrapper ];
         buildPhase = ''true'';
@@ -22,6 +22,19 @@ let
             makeWrapper ${pkgs.php}/bin/php $out/bin/.nextcloud-cron-needs-sudo --add-flags "${pkgs.nextcloud}/cron.php" \
                 --set NEXTCLOUD_CONFIG_DIR "/var/lib/nextcloud/config"
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/nextcloud-cron --add-flags "-u nginx $out/bin/.nextcloud-cron-needs-sudo"
+        '';
+    };
+    wrapBorg = pkgs: pkgs.stdenv.mkDerivation {
+        name = "nextcloud-borg";
+        src = pkgs.borgbackup;
+        buildInputs = [ pkgs.makeWrapper ];
+        buildPhase = ''true'';
+        installPhase = ''
+            mkdir -p $out/bin
+            makeWrapper ${pkgs.borgbackup}/bin/borg $out/bin/nextcloud-borg \
+                --set BORG_REPO "ssh://u178698@u178698.your-storagebox.de:23/./backup/nextcloud" \
+                --set BORG_PASSCOMMAND "cat ${secrets.getPath "backup/nextcloud"}" \
+                --set BORG_RSH "ssh -i ${secrets.getPath "backup/key"} -o StrictHostKeyChecking=no"
         '';
     };
     buildInitialConfig = pkgs: pkgs.writeText "config.php" ''<?php
@@ -98,6 +111,22 @@ let
         export PGPASSWORD=${secrets.getBash "postgresql/nextcloud"};
         ${pkgs.postgresql100}/bin/pg_dump -h 127.0.0.1 -U nextcloud --clean --if-exists -f /mnt/db/nextcloud.sql nextcloud
     '';
+    restoreNextcloudDb = pkgs: pkgs.writeScriptBin "nextcloud-restore-db" ''
+        export PGPASSWORD=${secrets.getBash "postgresql/nextcloud"};
+        ${pkgs.postgresql100}/bin/psql -h 127.0.0.1 -U nextcloud < /mnt/db/nextcloud.sql
+    '';
+    restoreNextcloud = pkgs: nextcloudBorg: restoreDbScript: pkgs.writeScriptBin "nextcloud-restore" ''
+        set -e
+
+        ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- occ maintenance:mode --on
+        sleep 15
+
+        cd /
+        ${nextcloudBorg}/bin/nextcloud-borg extract ::$1
+        ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- ${restoreDbScript}/bin/nextcloud-restore-db
+
+        ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- occ maintenance:mode --off
+    '';
     secrets = import ./lib/secrets.nix;
 in
 { config, lib, pkgs, ... }:
@@ -108,6 +137,9 @@ let
     extraConfig = buildExtraConfig pkgs config;
     bootstapScript = bootstapNextcloud lib pkgs extraConfig initialConfig occ;
     backupDbScript = backupNextcloudDb pkgs;
+    restoreDbScript = restoreNextcloudDb pkgs;
+    nextcloudBorg = wrapBorg pkgs;
+    restoreNextcloudScript = restoreNextcloud pkgs nextcloudBorg restoreDbScript;
 in
 {
     imports = [
@@ -285,9 +317,10 @@ in
 
             environment.systemPackages = [
                 occ
+                cron
                 bootstapScript
                 backupDbScript
-                cron
+                restoreDbScript
             ];
 
             services.cron = {
@@ -333,13 +366,18 @@ in
         };
     };
 
+    environment.systemPackages = [
+        nextcloudBorg
+        restoreNextcloudScript
+    ];
+
     services.borgbackup.jobs.nextcloud = {
         encryption = {
             mode = "repokey";
             passCommand = "cat ${secrets.getPath "backup/nextcloud"}";
         };
         environment = {
-            BORG_RSH = "ssh -i /etc/secrets/backup/key -o StrictHostKeyChecking=no";
+            BORG_RSH = "ssh -i ${secrets.getPath "backup/key"} -o StrictHostKeyChecking=no";
         };
         paths = [ "/var/lib/nextcloud" ];
         repo = "ssh://u178698@u178698.your-storagebox.de:23/./backup/nextcloud";
