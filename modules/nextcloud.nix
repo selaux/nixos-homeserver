@@ -66,7 +66,7 @@ let
         ${installAndEnable occ "bookmarks"}
         ${occ}/bin/occ app:disable activity || echo "Error, probably already disabled";
     '';
-    bootstapNextcloud = lib: pkgs: extraConfig: initialConfig: occ: pkgs.writeScriptBin "bootstrap-nextcloud" ''
+    bootstapNextcloud = lib: pkgs: extraConfig: initialConfig: occ: pkgs.writeScriptBin "nextcloud-bootstrap" ''
         if [ -f /var/lib/nextcloud/config/config.php ]; then
             echo "Nextcloud config already exists, skipping nextcloud bootstrap."
             ${updateConfig occ extraConfig}
@@ -94,6 +94,10 @@ let
             ${updateConfig occ extraConfig}
         fi
     '';
+    backupNextcloudDb = pkgs: pkgs.writeScriptBin "nextcloud-backup-db" ''
+        export PGPASSWORD=${secrets.getBash "postgresql/nextcloud"};
+        ${pkgs.postgresql100}/bin/pg_dump -h 127.0.0.1 -U nextcloud --clean --if-exists -f /mnt/db/nextcloud.sql nextcloud
+    '';
     secrets = import ./lib/secrets.nix;
 in
 { config, lib, pkgs, ... }:
@@ -103,6 +107,7 @@ let
     initialConfig = buildInitialConfig pkgs;
     extraConfig = buildExtraConfig pkgs config;
     bootstapScript = bootstapNextcloud lib pkgs extraConfig initialConfig occ;
+    backupDbScript = backupNextcloudDb pkgs;
 in
 {
     imports = [
@@ -124,6 +129,10 @@ in
             };
             "/mnt/apps" = {
                 hostPath = "/var/lib/nextcloud/apps";
+                isReadOnly = false;
+            };
+            "/mnt/db" = {
+                hostPath = "/var/lib/nextcloud/db";
                 isReadOnly = false;
             };
             "/etc/resolv.conf" = {
@@ -229,7 +238,7 @@ in
                 useDefaultShell = true;
             };
             systemd.services.nginx.postStart = ''
-                ${bootstapScript}/bin/bootstrap-nextcloud
+                ${bootstapScript}/bin/nextcloud-bootstrap
             '';
 
             services.phpfpm.phpOptions = ''
@@ -277,6 +286,7 @@ in
             environment.systemPackages = [
                 occ
                 bootstapScript
+                backupDbScript
                 cron
             ];
 
@@ -309,18 +319,37 @@ in
         };
     };
 
-
-
     system.activationScripts = {
         nextcloud = {
             text = ''
                 mkdir -p /var/lib/nextcloud/apps;
                 mkdir -p /var/lib/nextcloud/data;
                 mkdir -p /var/lib/nextcloud/config;
+                mkdir -p /var/lib/nextcloud/db;
 
                 chown -R nginx:nginx /var/lib/nextcloud
             '';
             deps = [];
         };
+    };
+
+    services.borgbackup.jobs.nextcloud = {
+        encryption = {
+            mode = "repokey";
+            passCommand = "cat ${secrets.getPath "backup/nextcloud"}";
+        };
+        environment = {
+            BORG_RSH = "ssh -i /etc/secrets/backup/key -o StrictHostKeyChecking=no";
+        };
+        paths = [ "/var/lib/nextcloud" ];
+        repo = "ssh://u178698@u178698.your-storagebox.de:23/./backup/nextcloud";
+        preHook = ''
+            ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- occ maintenance:mode --on
+            sleep 15
+            ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- ${backupDbScript}/bin/nextcloud-backup-db
+        '';
+        postHook = ''
+            ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- occ maintenance:mode --off
+        '';
     };
 }
