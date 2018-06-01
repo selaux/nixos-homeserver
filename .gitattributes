@@ -1,0 +1,2 @@
+state/* filter=git-crypt
+secrets/**/* filter=git-crypt diff=git-crypt
