@@ -24,6 +24,11 @@
 
             hostnames = hostnamesOption;
             secondaryHostnames = hostnamesOption;
+
+            borgRepo = mkOption {
+                type = types.str;
+                description = "Borg repository where backups are stored.";
+            };
         };
     };
 

@@ -381,7 +381,7 @@ in
             BORG_RSH = "ssh -i ${secrets.getPath "backup/key"} -o StrictHostKeyChecking=no";
         };
         paths = [ "/var/lib/nextcloud" ];
-        repo = "ssh://u178698@u178698.your-storagebox.de:23/./backup/nextcloud";
+        repo = config.homeserver.borgRepo;
         preHook = ''
             ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- occ maintenance:mode --on
             sleep 15

@@ -13,6 +13,7 @@
                 };
             };
             secondaryHostnames = {};
+            borgRepo = "ssh://u178698@u178698.your-storagebox.de:23/./backup/nextcloud";
         };
     };
 }
