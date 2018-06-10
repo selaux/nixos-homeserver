@@ -56,7 +56,7 @@ let
     buildExtraConfig = pkgs: config: pkgs.writeText "nextcloud-extra.json" ''
         {
             "system": {
-                "trusted_domains": ${builtins.toJSON config.homeserver.hostnames},
+                "trusted_domains": ${builtins.toJSON (builtins.attrNames config.homeserver.hostnames)},
                 "memcache.local": "\\OC\\Memcache\\APCu",
                 "memcache.distributed": "\\OC\\Memcache\\Memcached",
                 "memcached_servers": [ [ "localhost", 11211 ] ],

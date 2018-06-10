@@ -1,14 +1,23 @@
 { config, lib, pkgs, ... }: let
-    proxyPass = hostnames: lib.listToAttrs (map (n: lib.nameValuePair n {
-                # enableACME = true;
-                # acmeRoot = "/var/lib/acme/acme-${cfg.domain}";
-                # forceSSL = true;
+    sslValues = n: v: if v.acme then {
+        enableACME = true;
+        acmeRoot = "/var/lib/acme/acme-${n}";
+    } else {
+        sslCertificate = "/etc/secrets/nginx/cert/cert.pem";
+        sslCertificateKey = "/etc/secrets/nginx/cert/key.pem";
+    };
+    proxyPass = hostnames: (lib.mapAttrs' (n: v: lib.nameValuePair n ({
+        forceSSL = true;
         locations = {
             "/" = {
                 proxyPass = "http://127.0.0.1:8080";
             };
         };
-    }) hostnames);
+    } // (sslValues n v))) hostnames);
+    redirect = hostnames: (lib.mapAttrs' (n: v: lib.nameValuePair n ({
+        forceSSL = true;
+        globalRedirect = builtins.head (builtins.attrNames config.homeserver.hostnames);
+    } // (sslValues n v))) hostnames);
 in {
     networking.firewall.allowedTCPPorts = [ 80 443 ];
 
@@ -24,12 +33,6 @@ in {
             "none" = {
                 default = true;
             };
-            # "schelling30.com" = {
-            #     # enableACME = true;
-            #     # acmeRoot = "/var/lib/acme/acme-${cfg.domain}";
-            #     # forceSSL = true;
-            #     globalRedirect = "www.schelling30.com";
-            # };
         } // (proxyPass config.homeserver.hostnames);
     };
 }

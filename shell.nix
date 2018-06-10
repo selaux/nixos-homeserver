@@ -13,7 +13,7 @@ with nixpkgs;
 {
     testEnv = stdenv.mkDerivation {
         name = "nixops-homeserver-test-env";
-        buildInputs = [ nixops git-crypt openssh ];
+        buildInputs = [ nixops git-crypt openssh openssl ];
         shellHook = ''
             export NIX_PATH=nixpkgs=${nixpkgsPath}:.
 

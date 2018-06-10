@@ -4,16 +4,26 @@
         ./nextcloud.nix
     ];
 
-    options = with lib; {
+    options = with lib; let
+        hostnamesOption = mkOption {
+            type = types.attrsOf (types.submodule {
+                options = {
+                    acme = mkOption {
+                        type = types.bool;
+                        description = "Get certificate via ACME on startup else use self-signed.";
+                    };
+                };
+            });
+        };
+    in {
         homeserver = {
             timeZone = mkOption {
                 type = types.str;
                 description = "Timezone the server is in.";
             };
 
-            hostnames = mkOption {
-                type = types.listOf types.str;
-            };
+            hostnames = hostnamesOption;
+            secondaryHostnames = hostnamesOption;
         };
     };
 

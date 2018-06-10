@@ -18,6 +18,21 @@ def generate_ssh_keys(secret_id):
     commandline = [ "ssh-keygen", "-b", "4096", "-N", "", "-f", "{}/key".format(secret_path) ]
     subprocess.check_output(commandline)
 
+def generate_self_signed(secret_id):
+    secret_path = "secrets/{}".format(secret_id)
+    if os.path.exists(secret_path):
+        print("Skipping {} because secret already exists".format(secret_path))
+        return
+
+    domain_name = input("Please enter domain name:")
+
+    os.makedirs(secret_path, exist_ok=True)
+
+    key_file = "{}/key.pem".format(secret_path)
+    cert_file = "{}/cert.pem".format(secret_path)
+
+    commandline = [ "openssl", "req", "-x509", "-newkey", "rsa:4096", "-keyout", key_file, "-out", cert_file, "-days", "365", "-nodes", "-subj", "/C=SW/ST=SW/L=SW/O=SW Name/OU=Org/CN={}".format(domain_name) ]
+    res = subprocess.check_output(commandline)
 
 def ask_for_string_generator(text):
     while True:
@@ -50,6 +65,9 @@ if __name__ == "__main__":
         + "This user will have administrative rights in all services"
     ))
     generate_if_not_exists("initial/password", ask_for_string_generator("Password for the initial user for all services"))
+
+    generate_self_signed("nginx/cert")
+
     generate_ssh_keys("backup")
     generate_if_not_exists("backup/nextcloud", rstr_32)
 
