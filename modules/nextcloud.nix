@@ -160,7 +160,7 @@ in
                 hostPath = "/var/lib/nextcloud/config";
                 isReadOnly = false;
             };
-            "/mnt/apps" = {
+            "/var/lib/nextcloud/root/apps2" = {
                 hostPath = "/var/lib/nextcloud/apps";
                 isReadOnly = false;
             };
@@ -334,14 +334,15 @@ in
             system.activationScripts = {
                 mnt = {
                     text = ''
-                        rm -rf /var/lib/nextcloud
+                        find /var/lib/nextcloud/root -mindepth 1 -maxdepth 1 -a ! -name 'apps2' \
+                            -exec rm -rf {} \;
+
                         mkdir -p /var/lib/nextcloud/root;
                         mkdir -p /var/lib/nextcloud/sessions;
                         mkdir -p /tmp/nextcloud;
 
                         cp -r ${pkgs.nextcloud}/. /var/lib/nextcloud/root
                         ln -s /mnt/config /var/lib/nextcloud/config
-                        ln -s /mnt/apps /var/lib/nextcloud/root/apps2
                         ln -s /mnt/data /var/lib/nextcloud/data
 
                         chown -R nginx:nginx /var/lib/nextcloud
