@@ -1,1 +1,2 @@
-state/test.state.nixops
+secrets
+nixops/state

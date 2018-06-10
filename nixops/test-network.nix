@@ -8,18 +8,11 @@
         homeserver = {
             timeZone = "Europe/Berlin";
             hostnames = {
-                "www.schelling30.com" = {
-                    acme = true;
-                };
-                "nas" = {
+                "homeserver-test" = {
                     acme = false;
                 };
             };
-            secondaryHostnames = {
-                "schelling30.com" = {
-                    acme = true;
-                };
-            };
+            secondaryHostnames = {};
         };
     };
 }

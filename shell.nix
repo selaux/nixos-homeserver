@@ -13,19 +13,17 @@ with nixpkgs;
 {
     testEnv = stdenv.mkDerivation {
         name = "nixops-homeserver-test-env";
-        buildInputs = [ nixops git-crypt openssh openssl ];
+        buildInputs = [ nixops openssh openssl ];
         shellHook = ''
             export NIX_PATH=nixpkgs=${nixpkgsPath}:.
 
-            export NIXOPS_DEPLOYMENT=hs-test
-            export NIXOPS_STATE=state/test.state.nixops
+            export NIXOPS_DEPLOYMENT=homeserver-test
+            export NIXOPS_STATE=nixops/state/homeserver-test.state.nixops
 
-            alias createDeployment='nixops create -d hs-test ./networks/homeserver.nix ./environments/test.nix'
+            alias createDeployment='nixops create -d $NIXOPS_DEPLOYMENT ./nixops/test-network.nix ./nixops/test-libvirt.nix'
             alias generateSecrets='${python3}/bin/python scripts/generate_secrets.py'
             alias deploySecrets='nixops scp --to homeserver ./secrets/. /etc/secrets'
             alias bootstrap='generateSecrets && createDeployment && nixops deploy && nixops ssh-for-each "mount -o remount,rw /nix/store && chown -R root:root /nix/store" && deploySecrets && nixops deploy --force-reboot'
-
-            git-crypt unlock
         '';
     };
 }

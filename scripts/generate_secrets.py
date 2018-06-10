@@ -4,7 +4,7 @@ import os
 import subprocess
 
 def random_string_generator(length):
-    choices = string.ascii_letters + string.digits + string.punctuation
+    choices = string.ascii_letters + string.digits
     while True:
         yield ''.join([ random.choice(choices) for _ in range(length) ])
 
@@ -15,7 +15,7 @@ def generate_ssh_keys(secret_id):
         return
 
     os.makedirs(os.path.dirname(secret_path), exist_ok=True)
-    commandline = [ "ssh-keygen", "-b", "4096", "-N", "", "-f", "{}/key".format(secret_path) ]
+    commandline = [ "ssh-keygen", "-b", "4096", "-N", "", "-f", secret_path ]
     subprocess.check_output(commandline)
 
 def generate_self_signed(secret_id):

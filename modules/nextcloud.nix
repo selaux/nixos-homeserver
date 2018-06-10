@@ -91,6 +91,7 @@ let
                 echo "Waiting for postgres server, $((RETRIES--)) remaining attempts..."
                 sleep 5
             done
+            sleep 10
 
             ${pkgs.sudo}/bin/sudo -u nginx cp -f ${initialConfig} /var/lib/nextcloud/config/config.php;
             chmod 660 /var/lib/nextcloud/config/config.php;
