@@ -24,7 +24,7 @@ let
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/nextcloud-cron --add-flags "-u nginx $out/bin/.nextcloud-cron-needs-sudo"
         '';
     };
-    wrapBorg = pkgs: pkgs.stdenv.mkDerivation {
+    wrapBorg = pkgs: config: pkgs.stdenv.mkDerivation {
         name = "nextcloud-borg";
         src = pkgs.borgbackup;
         buildInputs = [ pkgs.makeWrapper ];
@@ -32,7 +32,7 @@ let
         installPhase = ''
             mkdir -p $out/bin
             makeWrapper ${pkgs.borgbackup}/bin/borg $out/bin/nextcloud-borg \
-                --set BORG_REPO "ssh://u178698@u178698.your-storagebox.de:23/./backup/nextcloud" \
+                --set BORG_REPO "${config.homeserver.borgRepo}" \
                 --set BORG_PASSCOMMAND "cat ${secrets.getPath "backup/nextcloud"}" \
                 --set BORG_RSH "ssh -i ${secrets.getPath "backup/key"} -o StrictHostKeyChecking=no"
         '';
@@ -139,7 +139,7 @@ let
     bootstapScript = bootstapNextcloud lib pkgs extraConfig initialConfig occ;
     backupDbScript = backupNextcloudDb pkgs;
     restoreDbScript = restoreNextcloudDb pkgs;
-    nextcloudBorg = wrapBorg pkgs;
+    nextcloudBorg = wrapBorg pkgs config;
     restoreNextcloudScript = restoreNextcloud pkgs nextcloudBorg restoreDbScript;
 in
 {
