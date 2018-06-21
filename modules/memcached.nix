@@ -3,6 +3,7 @@
         autoStart = true;
         privateNetwork = false;
         config = { pkgs, lib, ... }: {
+            system.nixos.stateVersion = config.system.nixos.stateVersion;
             time.timeZone = config.homeserver.timeZone;
 
             services.memcached = {

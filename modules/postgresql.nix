@@ -30,6 +30,7 @@ in {
                 bootstapScript = bootstrapPostgres pkgs;
             in {
             time.timeZone = config.homeserver.timeZone;
+            system.nixos.stateVersion = config.system.nixos.stateVersion;
 
             environment.systemPackages = [
                 bootstapScript

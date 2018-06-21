@@ -3,9 +3,9 @@ let
     nixpkgsPath = fetchFromGitHub {
         owner = "NixOS";
         repo = "nixpkgs-channels";
-        # Tracking NixOS 18.03
-        rev = "06c576b0525da85f2de86b3c13bb796d6a0c20f6";
-        sha256 = "01cra89drfjf3yhii5na0j5ivap2wcs0h8i0xcxrjs946nk4pp5j";
+        # Tracking NixOS Unstable
+        rev = "4b649a99d8461c980e7028a693387dc48033c1f7";
+        sha256 = "0iy2gllj457052wkp20baigb2bnal9nhyai0z9hvjr3x25ngck4y";
     };
     nixpkgs = import nixpkgsPath {};
 in
