@@ -16,7 +16,7 @@
     } // (sslValues n v))) hostnames);
     redirect = hostnames: (lib.mapAttrs' (n: v: lib.nameValuePair n ({
         forceSSL = true;
-        globalRedirect = builtins.head (builtins.attrNames config.homeserver.hostnames);
+        globalRedirect = builtins.head (builtins.attrNames (lib.filterAttrs (n: v: v.primary) config.homeserver.hostnames));
     } // (sslValues n v))) hostnames);
 in {
     networking.firewall.allowedTCPPorts = [ 80 443 ];

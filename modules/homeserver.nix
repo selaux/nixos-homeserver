@@ -12,6 +12,11 @@
                         type = types.bool;
                         description = "Get certificate via ACME on startup else use self-signed.";
                     };
+                    primary = mkOption {
+                        type = types.bool;
+                        description = "Is this the primary hostname that secondary hostnames should be redirected to?";
+                        default = false;
+                    };
                 };
             });
         };
