@@ -33,6 +33,6 @@ in {
             "none" = {
                 default = true;
             };
-        } // (proxyPass config.homeserver.hostnames);
+        } // (proxyPass config.homeserver.hostnames) // (redirect config.homeserver.secondaryHostnames);
     };
 }
