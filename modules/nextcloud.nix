@@ -57,6 +57,7 @@ let
         {
             "system": {
                 "trusted_domains": ${builtins.toJSON (builtins.attrNames config.homeserver.hostnames)},
+                "trusted_proxies": [ "127.0.0.1" ],
                 "memcache.local": "\\OC\\Memcache\\APCu",
                 "memcache.distributed": "\\OC\\Memcache\\Memcached",
                 "memcached_servers": [ [ "localhost", 11211 ] ],
