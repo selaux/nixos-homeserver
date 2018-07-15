@@ -1,10 +1,11 @@
 { config, lib, pkgs, ... }: let
+    secrets = import ./lib/secrets.nix;
     sslValues = n: v: if v.acme then {
         enableACME = true;
         acmeRoot = "/var/lib/acme/acme-${n}";
     } else {
-        sslCertificate = "/etc/secrets/nginx/cert/cert.pem";
-        sslCertificateKey = "/etc/secrets/nginx/cert/key.pem";
+        sslCertificate = secrets.getPath "nginx/cert/cert.pem";
+        sslCertificateKey = secrets.getPath "nginx/cert/key.pem";
     };
     proxyPass = hostnames: (lib.mapAttrs' (n: v: lib.nameValuePair n ({
         forceSSL = true;
@@ -31,7 +32,10 @@ in {
         '';
         virtualHosts = {
             "none" = {
+                forceSSL = true;
                 default = true;
+                sslCertificate = secrets.getPath "nginx/cert/cert.pem";
+                sslCertificateKey = secrets.getPath "nginx/cert/key.pem";
             };
         } // (proxyPass config.homeserver.hostnames) // (redirect config.homeserver.secondaryHostnames);
     };
