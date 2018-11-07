@@ -180,7 +180,7 @@ in
         ]);
         config = { pkgs, lib, ... }: {
             time.timeZone = config.homeserver.timeZone;
-            system.nixos.stateVersion = config.system.nixos.stateVersion;
+            system.stateVersion = config.system.stateVersion;
 
             services.nginx = {
                 enable = true;
