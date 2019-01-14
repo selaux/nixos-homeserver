@@ -281,6 +281,8 @@ in
                 extension=${pkgs.php72Packages.memcached}/lib/php/extensions/memcached.so
                 extension=${pkgs.php72Packages.apcu}/lib/php/extensions/apcu.so
 
+                memory_limit = 512M
+
                 [opcache]
                 opcache.enable=1
                 opcache.enable_cli=1
