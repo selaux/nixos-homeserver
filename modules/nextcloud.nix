@@ -217,7 +217,7 @@ in
                                 return 301 $scheme://$host/remote.php/dav;
                             }
                             location / {
-                                rewrite ^ /index.php$uri;
+                                rewrite ^ /index.php$request_uri;
                             }
 
                             location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)/ {
