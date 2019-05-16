@@ -281,6 +281,7 @@ in
                 zend_extension=${pkgs.php72}/lib/php/extensions/opcache.so
                 extension=${pkgs.php72Packages.memcached}/lib/php/extensions/memcached.so
                 extension=${pkgs.php72Packages.apcu}/lib/php/extensions/apcu.so
+                extension=${pkgs.php72Packages.imagick}/lib/php/extensions/imagick.so
 
                 memory_limit = 512M
 
