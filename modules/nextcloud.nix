@@ -209,6 +209,7 @@ in
                             add_header X-Robots-Tag none;
                             add_header X-Download-Options noopen;
                             add_header X-Permitted-Cross-Domain-Policies none;
+                            add_header Referrer-Policy same-origin;
 
                             location = /.well-known/carddav {
                                 return 301 $scheme://$host/remote.php/dav;
