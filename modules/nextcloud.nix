@@ -2,7 +2,7 @@ let
     phpFpmSocket = "/run/phpfpm/phpfpm.sock";
     phpOptions = pkgs: ''
         zend_extension=${pkgs.php73}/lib/php/extensions/opcache.so
-        extension=${pkgs.php73Packages.memcached}/lib/php/extensions/memcached.so
+        extension=${pkgs.php73Packages.redis}/lib/php/extensions/redis.so
         extension=${pkgs.php73Packages.apcu}/lib/php/extensions/apcu.so
         extension=${pkgs.php73Packages.imagick}/lib/php/extensions/imagick.so
 
@@ -77,8 +77,12 @@ let
                 "trusted_domains": ${builtins.toJSON (builtins.attrNames config.homeserver.hostnames)},
                 "trusted_proxies": [ "127.0.0.1" ],
                 "memcache.local": "\\OC\\Memcache\\APCu",
-                "memcache.distributed": "\\OC\\Memcache\\Memcached",
-                "memcached_servers": [ [ "localhost", 11211 ] ],
+                "memcache.distributed" => "\OC\Memcache\Redis",
+                "memcache.locking" => "\OC\Memcache\Redis",
+                "redis" => array(
+                    "host" => "localhost",
+                    "port" => 6379,
+                ),
 
                 "auth.bruteforce.protection.enabled": true
             }
@@ -163,7 +167,7 @@ let
 in
 {
     imports = [
-        ./memcached.nix
+        ./redis.nix
         ./postgresql.nix
     ];
 
