@@ -1,5 +1,23 @@
 let
     phpFpmSocket = "/run/phpfpm/phpfpm.sock";
+    phpOptions = pkgs: ''
+        zend_extension=${pkgs.php73}/lib/php/extensions/opcache.so
+        extension=${pkgs.php73Packages.memcached}/lib/php/extensions/memcached.so
+        extension=${pkgs.php73Packages.apcu}/lib/php/extensions/apcu.so
+        extension=${pkgs.php73Packages.imagick}/lib/php/extensions/imagick.so
+
+        memory_limit = 2048M
+
+        [opcache]
+        opcache.enable=1
+        opcache.enable_cli=1
+        opcache.interned_strings_buffer=8
+        opcache.max_accelerated_files=10000
+        opcache.memory_consumption=128
+        opcache.save_comments=1
+        opcache.revalidate_freq=1
+    '';
+    phpIni = pkgs: pkgs.writeText "php.ini" (phpOptions pkgs);
     wrapOcc = pkgs: pkgs.stdenv.mkDerivation {
         name = "occ";
         src = pkgs.nextcloud;
@@ -7,7 +25,7 @@ let
         buildPhase = ''true'';
         installPhase = ''
             mkdir -p $out/bin
-            makeWrapper ${pkgs.php}/bin/php $out/bin/.occ-needs-sudo --add-flags "${pkgs.nextcloud}/occ" \
+            makeWrapper ${pkgs.php73}/bin/php $out/bin/.occ-needs-sudo --add-flags "-c ${phpIni pkgs} ${pkgs.nextcloud}/occ" \
                 --set NEXTCLOUD_CONFIG_DIR "/var/lib/nextcloud/config"
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/occ --add-flags "-u nginx $out/bin/.occ-needs-sudo"
         '';
@@ -19,7 +37,7 @@ let
         buildPhase = ''true'';
         installPhase = ''
             mkdir -p $out/bin
-            makeWrapper ${pkgs.php}/bin/php $out/bin/.nextcloud-cron-needs-sudo --add-flags "${pkgs.nextcloud}/cron.php" \
+            makeWrapper ${pkgs.php73}/bin/php $out/bin/.nextcloud-cron-needs-sudo --add-flags "-c ${phpIni pkgs} ${pkgs.nextcloud}/cron.php" \
                 --set NEXTCLOUD_CONFIG_DIR "/var/lib/nextcloud/config"
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/nextcloud-cron --add-flags "-u nginx $out/bin/.nextcloud-cron-needs-sudo"
         '';
@@ -277,23 +295,8 @@ in
                 ${bootstapScript}/bin/nextcloud-bootstrap
             '';
 
-            services.phpfpm.phpOptions = ''
-                zend_extension=${pkgs.php72}/lib/php/extensions/opcache.so
-                extension=${pkgs.php72Packages.memcached}/lib/php/extensions/memcached.so
-                extension=${pkgs.php72Packages.apcu}/lib/php/extensions/apcu.so
-                extension=${pkgs.php72Packages.imagick}/lib/php/extensions/imagick.so
-
-                memory_limit = 512M
-
-                [opcache]
-                opcache.enable=1
-                opcache.enable_cli=1
-                opcache.interned_strings_buffer=8
-                opcache.max_accelerated_files=10000
-                opcache.memory_consumption=128
-                opcache.save_comments=1
-                opcache.revalidate_freq=1
-            '';
+            services.phpfpm.phpPackage = pkgs.php73;
+            services.phpfpm.phpOptions = phpOptions pkgs;
             services.phpfpm.pools = {
                 www = {
                     listen = phpFpmSocket;
