@@ -39,6 +39,9 @@ in {
             services.postgresql = {
                 enable = true;
                 package = pkgs.postgresql_10;
+                extraConfig = ''
+                    shared_buffers = 1024MB
+                '';
                 authentication = lib.mkForce ''
                     # Generated file; do not edit!
                     # TYPE  DATABASE        USER            ADDRESS                 METHOD
