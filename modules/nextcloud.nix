@@ -314,11 +314,11 @@ in
                         listen.owner = nginx
                         listen.group = nginx
                         pm = dynamic
-                        pm.max_children = 25
-                        pm.start_servers = 5
-                        pm.min_spare_servers = 5
-                        pm.max_spare_servers = 10
-                        pm.max_requests = 50
+                        pm.max_children = 50
+                        pm.start_servers = 10
+                        pm.min_spare_servers = 10
+                        pm.max_spare_servers = 20
+                        pm.max_requests = 100
 
                         php_admin_value[display_errors] = Off
                         php_admin_value[session.save_path] = /var/lib/nextcloud/sessions
