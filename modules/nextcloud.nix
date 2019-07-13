@@ -199,10 +199,16 @@ in
         config = { pkgs, lib, ... }: {
             time.timeZone = config.homeserver.timeZone;
             system.stateVersion = config.system.stateVersion;
+            boot.tmpOnTmpfs = true;
 
             services.nginx = {
                 enable = true;
+                recommendedGzipSettings = true;
+                recommendedOptimisation = true;
                 appendHttpConfig = ''
+                    fastcgi_cache_path /tmp/nginx-cache levels=1:2 keys_zone=NEXTCLOUD:10m max_size=512M inactive=336h use_temp_path=off;
+                    fastcgi_cache_key "$scheme$request_method$host$request_uri";
+
                     server_names_hash_bucket_size 64;
                 '';
                 upstreams = {
@@ -258,6 +264,8 @@ in
                                 fastcgi_pass phpfpm;
                                 fastcgi_intercept_errors on;
                                 fastcgi_request_buffering off;
+
+                                fastcgi_cache NEXTCLOUD;
                             }
 
                             location ~ ^/(?:updater|ocs-provider)(?:$|/) {
@@ -349,6 +357,7 @@ in
                         mkdir -p /var/lib/nextcloud/root;
                         mkdir -p /var/lib/nextcloud/sessions;
                         mkdir -p /tmp/nextcloud;
+                        mkdir -p /tmp/nginx-cache;
 
                         cp -r ${pkgs.nextcloud}/. /var/lib/nextcloud/root
                         ln -s /mnt/config /var/lib/nextcloud/config
