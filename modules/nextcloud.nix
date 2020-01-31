@@ -311,7 +311,7 @@ in
             services.phpfpm.phpOptions = phpOptions pkgs;
             services.phpfpm.pools = {
                 www = {
-                    socket = phpFpmSocket;
+                    listen = phpFpmSocket;
                     user = "nginx";
                     group = "nginx";
                     extraConfig = ''
