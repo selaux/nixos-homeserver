@@ -362,6 +362,7 @@ in
                         mkdir -p /var/lib/nextcloud/sessions;
                         mkdir -p /tmp/nextcloud;
                         mkdir -p /tmp/nginx-cache;
+                        chown -R nginx:nginx /tmp/nginx-cache
 
                         cp -r ${pkgs.nextcloud}/. /var/lib/nextcloud/root
                         ln -s /mnt/config /var/lib/nextcloud/config
