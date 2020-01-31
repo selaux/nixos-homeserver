@@ -312,9 +312,9 @@ in
             services.phpfpm.pools = {
                 www = {
                     listen = phpFpmSocket;
+                    user = "nginx";
+                    group = "nginx";
                     extraConfig = ''
-                        user = nginx
-                        group = nginx
                         listen.owner = nginx
                         listen.group = nginx
                         pm = dynamic
