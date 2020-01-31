@@ -25,7 +25,7 @@ let
         buildPhase = ''true'';
         installPhase = ''
             mkdir -p $out/bin
-            makeWrapper ${pkgs.php73}/bin/php $out/bin/.occ-needs-sudo --add-flags "-c ${phpIni pkgs} ${pkgs.nextcloud}/occ" \
+            makeWrapper ${pkgs.php73}/bin/php $out/bin/.occ-needs-sudo --add-flags "-c ${phpIni pkgs} /var/lib/nextcloud/root/occ" \
                 --set NEXTCLOUD_CONFIG_DIR "/var/lib/nextcloud/config"
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/occ --add-flags "-u nginx $out/bin/.occ-needs-sudo"
         '';
@@ -37,7 +37,7 @@ let
         buildPhase = ''true'';
         installPhase = ''
             mkdir -p $out/bin
-            makeWrapper ${pkgs.php73}/bin/php $out/bin/.nextcloud-cron-needs-sudo --add-flags "-c ${phpIni pkgs} ${pkgs.nextcloud}/cron.php" \
+            makeWrapper ${pkgs.php73}/bin/php $out/bin/.nextcloud-cron-needs-sudo --add-flags "-c ${phpIni pkgs} /var/lib/nextcloud/root/cron.php" \
                 --set NEXTCLOUD_CONFIG_DIR "/var/lib/nextcloud/config"
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/nextcloud-cron --add-flags "-u nginx $out/bin/.nextcloud-cron-needs-sudo"
         '';
