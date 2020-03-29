@@ -2,7 +2,7 @@
     secrets = import ./lib/secrets.nix;
     sslValues = n: v: if v.acme then {
         enableACME = true;
-        acmeRoot = "/var/lib/acme/acme-${n}";
+        acmeRoot = "/var/lib/acme/${n}";
     } else {
         sslCertificate = secrets.getPath "nginx/cert/cert.pem";
         sslCertificateKey = secrets.getPath "nginx/cert/key.pem";
