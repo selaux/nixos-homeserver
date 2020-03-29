@@ -20,7 +20,7 @@ let
     phpIni = pkgs: pkgs.writeText "php.ini" (phpOptions pkgs);
     wrapOcc = pkgs: pkgs.stdenv.mkDerivation {
         name = "occ";
-        src = pkgs.nextcloud;
+        src = pkgs.nextcloud18;
         buildInputs = [ pkgs.makeWrapper ];
         buildPhase = ''true'';
         installPhase = ''
@@ -32,7 +32,7 @@ let
     };
     wrapCron = pkgs: pkgs.stdenv.mkDerivation {
         name = "nexcloud-cron";
-        src = pkgs.nextcloud;
+        src = pkgs.nextcloud18;
         buildInputs = [ pkgs.makeWrapper ];
         buildPhase = ''true'';
         installPhase = ''
@@ -364,7 +364,7 @@ in
                         mkdir -p /tmp/nginx-cache;
                         chown -R nginx:nginx /tmp/nginx-cache
 
-                        cp -r ${pkgs.nextcloud}/. /var/lib/nextcloud/root
+                        cp -r ${pkgs.nextcloud18}/. /var/lib/nextcloud/root
                         ln -s /mnt/config /var/lib/nextcloud/config
                         ln -s /mnt/data /var/lib/nextcloud/data
 
