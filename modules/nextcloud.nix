@@ -225,6 +225,7 @@ in
                             add_header X-Download-Options noopen;
                             add_header X-Permitted-Cross-Domain-Policies none;
                             add_header Referrer-Policy same-origin;
+                            add_header X-Frame-Options "SAMEORIGIN" always;
 
                             location = /.well-known/carddav {
                                 return 301 $scheme://$host/remote.php/dav;
@@ -274,6 +275,7 @@ in
                                 add_header X-Robots-Tag none;
                                 add_header X-Download-Options noopen;
                                 add_header X-Permitted-Cross-Domain-Policies none;
+                                add_header X-Frame-Options "SAMEORIGIN" always;
                                 # Optional: Don't log access to assets
                                 access_log off;
                             }
