@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 let
     customPHP = pkgs.php74.buildEnv {
-        extensions = ext: with ext; [ opcache redis apcu imagick ];
+        extensions = { enabled, all }: (unique (enabled ++ [ all.opcache all.redis all.apcu all.imagick ]));
         extraConfig = ''
             memory_limit = 2048M
 
