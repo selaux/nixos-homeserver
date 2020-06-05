@@ -1,3 +1,4 @@
+{ config, lib, pkgs, ... }:
 let
     customPHP = pkgs.php74.buildEnv {
         extensions = ext: with ext; [ opcache redis apcu imagick ];
@@ -16,7 +17,7 @@ let
 
     };
     phpFpmSocket = "/run/phpfpm/phpfpm.sock";
-    wrapOcc = pkgs: pkgs.stdenv.mkDerivation {
+    occ = pkgs.stdenv.mkDerivation {
         name = "occ";
         src = pkgs.nextcloud18;
         buildInputs = [ pkgs.makeWrapper ];
@@ -28,7 +29,7 @@ let
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/occ --add-flags "-u nginx $out/bin/.occ-needs-sudo"
         '';
     };
-    wrapCron = pkgs: pkgs.stdenv.mkDerivation {
+    cron = pkgs.stdenv.mkDerivation {
         name = "nexcloud-cron";
         src = pkgs.nextcloud18;
         buildInputs = [ pkgs.makeWrapper ];
@@ -40,7 +41,7 @@ let
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/nextcloud-cron --add-flags "-u nginx $out/bin/.nextcloud-cron-needs-sudo"
         '';
     };
-    wrapBorg = pkgs: config: pkgs.stdenv.mkDerivation {
+    nextcloudBorg = pkgs.stdenv.mkDerivation {
         name = "nextcloud-borg";
         src = pkgs.borgbackup;
         buildInputs = [ pkgs.makeWrapper ];
@@ -53,7 +54,7 @@ let
                 --set BORG_RSH "ssh -i ${secrets.getPath "backup/key"} -o StrictHostKeyChecking=no"
         '';
     };
-    buildInitialConfig = pkgs: pkgs.writeText "config.php" ''<?php
+    initialConfig = pkgs.writeText "config.php" ''<?php
         $CONFIG = array(
             'apps_paths' => array(
                 array(
@@ -69,7 +70,7 @@ let
             ),
         );
     '';
-    buildExtraConfig = pkgs: config: pkgs.writeText "nextcloud-extra.json" ''
+    extraConfig = pkgs.writeText "nextcloud-extra.json" ''
         {
             "system": {
                 "trusted_domains": ${builtins.toJSON (builtins.attrNames config.homeserver.hostnames)},
@@ -86,11 +87,11 @@ let
             }
         }
     '';
-    installAndEnable = occ: app: ''
+    installAndEnable = app: ''
         ${occ}/bin/occ app:install ${app} || echo "Error, probably already installed";
         ${occ}/bin/occ app:enable ${app} || echo "Error, probably already enabled";
     '';
-    updateConfig = occ: extraConfig: ''
+    updateConfig = ''
         ${occ}/bin/occ config:import ${extraConfig};
         ${occ}/bin/occ upgrade;
         ${occ}/bin/occ background:cron;
@@ -100,7 +101,7 @@ let
         ${installAndEnable occ "bookmarks"}
         ${occ}/bin/occ app:disable activity || echo "Error, probably already disabled";
     '';
-    bootstapNextcloud = lib: pkgs: extraConfig: initialConfig: occ: pkgs.writeScriptBin "nextcloud-bootstrap" ''
+    bootstapScript = pkgs.writeScriptBin "nextcloud-bootstrap" ''
         if [ -f /var/lib/nextcloud/config/config.php ]; then
             echo "Nextcloud config already exists, skipping nextcloud bootstrap."
             ${updateConfig occ extraConfig}
@@ -129,15 +130,15 @@ let
             ${updateConfig occ extraConfig}
         fi
     '';
-    backupNextcloudDb = pkgs: pkgs.writeScriptBin "nextcloud-backup-db" ''
+    backupDbScript = pkgs.writeScriptBin "nextcloud-backup-db" ''
         export PGPASSWORD=${secrets.getBash "postgresql/nextcloud"};
         ${pkgs.postgresql_10}/bin/pg_dump -h 127.0.0.1 -U nextcloud --clean --if-exists -f /mnt/db/nextcloud.sql nextcloud
     '';
-    restoreNextcloudDb = pkgs: pkgs.writeScriptBin "nextcloud-restore-db" ''
+    restoreDbScript = pkgs.writeScriptBin "nextcloud-restore-db" ''
         export PGPASSWORD=${secrets.getBash "postgresql/nextcloud"};
         ${pkgs.postgresql_10}/bin/psql -h 127.0.0.1 -U nextcloud < /mnt/db/nextcloud.sql
     '';
-    restoreNextcloud = pkgs: nextcloudBorg: restoreDbScript: pkgs.writeScriptBin "nextcloud-restore" ''
+    restoreNextcloudScript = pkgs.writeScriptBin "nextcloud-restore" ''
         set -e
 
         ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- occ maintenance:mode --on
@@ -150,18 +151,6 @@ let
         ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- occ maintenance:mode --off
     '';
     secrets = import ./lib/secrets.nix;
-in
-{ config, lib, pkgs, ... }:
-let
-    occ = (wrapOcc pkgs);
-    cron = (wrapCron pkgs);
-    initialConfig = buildInitialConfig pkgs;
-    extraConfig = buildExtraConfig pkgs config;
-    bootstapScript = bootstapNextcloud lib pkgs extraConfig initialConfig occ;
-    backupDbScript = backupNextcloudDb pkgs;
-    restoreDbScript = restoreNextcloudDb pkgs;
-    nextcloudBorg = wrapBorg pkgs config;
-    restoreNextcloudScript = restoreNextcloud pkgs nextcloudBorg restoreDbScript;
 in
 {
     imports = [
