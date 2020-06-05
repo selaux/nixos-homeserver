@@ -95,16 +95,16 @@ let
         ${occ}/bin/occ config:import ${extraConfig};
         ${occ}/bin/occ upgrade;
         ${occ}/bin/occ background:cron;
-        ${installAndEnable occ "calendar"}
-        ${installAndEnable occ "contacts"}
-        ${installAndEnable occ "notes"}
-        ${installAndEnable occ "bookmarks"}
+        ${installAndEnable "calendar"}
+        ${installAndEnable "contacts"}
+        ${installAndEnable "notes"}
+        ${installAndEnable "bookmarks"}
         ${occ}/bin/occ app:disable activity || echo "Error, probably already disabled";
     '';
     bootstapScript = pkgs.writeScriptBin "nextcloud-bootstrap" ''
         if [ -f /var/lib/nextcloud/config/config.php ]; then
             echo "Nextcloud config already exists, skipping nextcloud bootstrap."
-            ${updateConfig occ extraConfig}
+            ${updateConfig}
         else
             RETRIES=5
             export PGPASSWORD=${secrets.getBash "postgresql/nextcloud"};
@@ -127,7 +127,7 @@ let
                 --admin-pass ${secrets.getBash "initial/password"} \
                 --data-dir /var/lib/nextcloud/data;
 
-            ${updateConfig occ extraConfig}
+            ${updateConfig}
         fi
     '';
     backupDbScript = pkgs.writeScriptBin "nextcloud-backup-db" ''
