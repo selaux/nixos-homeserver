@@ -1,23 +1,21 @@
 let
+    customPHP = pkgs.php74.buildEnv {
+        extensions = ext: with ext; [ opcache redis apcu imagick ];
+        extraConfig = ''
+            memory_limit = 2048M
+
+            [opcache]
+            opcache.enable=1
+            opcache.enable_cli=1
+            opcache.interned_strings_buffer=8
+            opcache.max_accelerated_files=10000
+            opcache.memory_consumption=256
+            opcache.save_comments=1
+            opcache.revalidate_freq=1
+        '';
+
+    };
     phpFpmSocket = "/run/phpfpm/phpfpm.sock";
-    phpOptions = pkgs: ''
-        zend_extension=${pkgs.php73}/lib/php/extensions/opcache.so
-        extension=${pkgs.php73Packages.redis}/lib/php/extensions/redis.so
-        extension=${pkgs.php73Packages.apcu}/lib/php/extensions/apcu.so
-        extension=${pkgs.php73Packages.imagick}/lib/php/extensions/imagick.so
-
-        memory_limit = 2048M
-
-        [opcache]
-        opcache.enable=1
-        opcache.enable_cli=1
-        opcache.interned_strings_buffer=8
-        opcache.max_accelerated_files=10000
-        opcache.memory_consumption=256
-        opcache.save_comments=1
-        opcache.revalidate_freq=1
-    '';
-    phpIni = pkgs: pkgs.writeText "php.ini" (phpOptions pkgs);
     wrapOcc = pkgs: pkgs.stdenv.mkDerivation {
         name = "occ";
         src = pkgs.nextcloud18;
@@ -25,7 +23,7 @@ let
         buildPhase = ''true'';
         installPhase = ''
             mkdir -p $out/bin
-            makeWrapper ${pkgs.php73}/bin/php $out/bin/.occ-needs-sudo --add-flags "-c ${phpIni pkgs} /var/lib/nextcloud/root/occ" \
+            makeWrapper ${customPHP}/bin/php $out/bin/.occ-needs-sudo --add-flags "/var/lib/nextcloud/root/occ" \
                 --set NEXTCLOUD_CONFIG_DIR "/var/lib/nextcloud/config"
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/occ --add-flags "-u nginx $out/bin/.occ-needs-sudo"
         '';
@@ -37,7 +35,7 @@ let
         buildPhase = ''true'';
         installPhase = ''
             mkdir -p $out/bin
-            makeWrapper ${pkgs.php73}/bin/php $out/bin/.nextcloud-cron-needs-sudo --add-flags "-c ${phpIni pkgs} /var/lib/nextcloud/root/cron.php" \
+            makeWrapper ${customPHP}/bin/php $out/bin/.nextcloud-cron-needs-sudo --add-flags "/var/lib/nextcloud/root/cron.php" \
                 --set NEXTCLOUD_CONFIG_DIR "/var/lib/nextcloud/config"
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/nextcloud-cron --add-flags "-u nginx $out/bin/.nextcloud-cron-needs-sudo"
         '';
@@ -307,8 +305,7 @@ in
                 ${bootstapScript}/bin/nextcloud-bootstrap
             '';
 
-            services.phpfpm.phpPackage = pkgs.php73;
-            services.phpfpm.phpOptions = phpOptions pkgs;
+            services.phpfpm.phpPackage = customPHP;
             services.phpfpm.pools = {
                 www = {
                     listen = phpFpmSocket;
