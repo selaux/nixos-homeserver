@@ -19,7 +19,7 @@ let
     phpFpmSocket = "/run/phpfpm/phpfpm.sock";
     occ = pkgs.stdenv.mkDerivation {
         name = "occ";
-        src = pkgs.nextcloud18;
+        src = pkgs.nextcloud20;
         buildInputs = [ pkgs.makeWrapper ];
         buildPhase = ''true'';
         installPhase = ''
@@ -31,7 +31,7 @@ let
     };
     cron = pkgs.stdenv.mkDerivation {
         name = "nexcloud-cron";
-        src = pkgs.nextcloud18;
+        src = pkgs.nextcloud20;
         buildInputs = [ pkgs.makeWrapper ];
         buildPhase = ''true'';
         installPhase = ''
@@ -352,7 +352,7 @@ in
                         mkdir -p /tmp/nginx-cache;
                         chown -R nginx:nginx /tmp/nginx-cache
 
-                        cp -r ${pkgs.nextcloud18}/. /var/lib/nextcloud/root
+                        cp -r ${pkgs.nextcloud20}/. /var/lib/nextcloud/root
                         ln -s /mnt/config /var/lib/nextcloud/config
                         ln -s /mnt/data /var/lib/nextcloud/data
 
