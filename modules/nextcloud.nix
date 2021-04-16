@@ -31,7 +31,7 @@ let
     };
     cron = pkgs.stdenv.mkDerivation {
         name = "nexcloud-cron";
-        src = pkgs.nextcloud20;
+        src = pkgs.nextcloud21;
         buildInputs = [ pkgs.makeWrapper ];
         buildPhase = ''true'';
         installPhase = ''
