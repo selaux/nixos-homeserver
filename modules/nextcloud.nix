@@ -196,6 +196,7 @@ in
                 enable = true;
                 recommendedGzipSettings = true;
                 recommendedOptimisation = true;
+                clientMaxBodySize = "512M";
                 appendHttpConfig = ''
                     fastcgi_cache_path /tmp/nginx-cache levels=1:2 keys_zone=NEXTCLOUD:10m max_size=512M inactive=336h use_temp_path=off;
                     fastcgi_cache_key "$scheme$request_method$host$request_uri";
