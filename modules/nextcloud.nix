@@ -13,6 +13,9 @@ let
             opcache.memory_consumption=256
             opcache.save_comments=1
             opcache.revalidate_freq=1
+
+            [apc]
+            apc.enable_cli=1
         '';
 
     };
