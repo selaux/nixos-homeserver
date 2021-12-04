@@ -133,7 +133,7 @@ let
             RETRIES=5
             export PGPASSWORD=${secrets.getBash "postgresql/nextcloud"};
             echo "Connecting to postgres server, $(RETRIES) remaining attempts..."
-            until ${pkgs.postgresql_10}/bin/psql -h 127.0.0.1 -U nextcloud -d nextcloud -c "" 2> /dev/null || [ $RETRIES -eq 0 ]; do
+            until ${pkgs.postgresql_13}/bin/psql -h 127.0.0.1 -U nextcloud -d nextcloud -c "" 2> /dev/null || [ $RETRIES -eq 0 ]; do
                 echo "Waiting for postgres server, $((RETRIES--)) remaining attempts..."
                 sleep 5
             done
@@ -156,11 +156,11 @@ let
     '';
     backupDbScript = pkgs.writeScriptBin "nextcloud-backup-db" ''
         export PGPASSWORD=${secrets.getBash "postgresql/nextcloud"};
-        ${pkgs.postgresql_10}/bin/pg_dump -h 127.0.0.1 -U nextcloud --clean --if-exists -f /mnt/db/nextcloud.sql nextcloud
+        ${pkgs.postgresql_13}/bin/pg_dump -h 127.0.0.1 -U nextcloud --clean --if-exists -f /mnt/db/nextcloud.sql nextcloud
     '';
     restoreDbScript = pkgs.writeScriptBin "nextcloud-restore-db" ''
         export PGPASSWORD=${secrets.getBash "postgresql/nextcloud"};
-        ${pkgs.postgresql_10}/bin/psql -h 127.0.0.1 -U nextcloud < /mnt/db/nextcloud.sql
+        ${pkgs.postgresql_13}/bin/psql -h 127.0.0.1 -U nextcloud < /mnt/db/nextcloud.sql
     '';
     restoreNextcloudScript = pkgs.writeScriptBin "nextcloud-restore" ''
         set -e

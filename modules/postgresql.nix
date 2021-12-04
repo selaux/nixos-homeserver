@@ -18,7 +18,7 @@ in {
 
             services.postgresql = {
                 enable = true;
-                package = pkgs.postgresql_10;
+                package = pkgs.postgresql_13;
                 settings = {
                     shared_buffers = "1024MB";
                 };
