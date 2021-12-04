@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 let
     cfg = config;
-    customPHP = pkgs.php74.buildEnv {
+    customPHP = pkgs.php80.buildEnv {
         extensions = { enabled, all }: (lib.unique (enabled ++ [ all.opcache all.redis all.apcu all.imagick ]));
         extraConfig = ''
             memory_limit = 2048M
