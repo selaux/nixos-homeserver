@@ -47,12 +47,22 @@ let
     };
     cronThumbnails = pkgs.stdenv.mkDerivation {
         name = "nexcloud-cron-thumbnails";
-        src = nextcloudPackage;
+        src = occ;
         buildInputs = [ pkgs.makeWrapper ];
         buildPhase = ''true'';
         installPhase = ''
             mkdir -p $out/bin
             makeWrapper ${occ}/bin/occ $out/bin/nextcloud-cron-thumbnails --add-flags "preview:pre-generate"
+        '';
+    };
+    cronAppUpdates = pkgs.stdenv.mkDerivation {
+        name = "nexcloud-cron-app-updates";
+        src = occ;
+        buildInputs = [ pkgs.makeWrapper ];
+        buildPhase = ''true'';
+        installPhase = ''
+            mkdir -p $out/bin
+            makeWrapper ${occ}/bin/occ $out/bin/nextcloud-cron-app-updates --add-flags "app:update --all"
         '';
     };
     nextcloudBorg = pkgs.stdenv.mkDerivation {
@@ -344,6 +354,7 @@ in
                 occ
                 cron
                 cronThumbnails
+                cronAppUpdates
                 bootstapScript
                 backupDbScript
                 restoreDbScript
@@ -352,8 +363,9 @@ in
             services.cron = {
                 enable = true;
                 systemCronJobs = [
-                    "*/15 * * * * root ${cron}/bin/nextcloud-cron"
-                    "*/15 * * * * root ${cronThumbnails}/bin/nextcloud-cron-thumbnails"
+                    "*/10 * * * * root ${cron}/bin/nextcloud-cron"
+                    "*/10 * * * * root ${cronThumbnails}/bin/nextcloud-cron-thumbnails"
+                    "0    2 * * * root ${cronAppUpdates}/bin/nextcloud-cron-app-updates"
                 ];
             };
 
