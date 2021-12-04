@@ -1,5 +1,6 @@
 { config, lib, pkgs, ... }:
 let
+    cfg = config;
     customPHP = pkgs.php74.buildEnv {
         extensions = { enabled, all }: (lib.unique (enabled ++ [ all.opcache all.redis all.apcu all.imagick ]));
         extraConfig = ''
@@ -20,7 +21,6 @@ let
 
     };
     nextcloudPackage = pkgs.nextcloud21;
-    phpFpmSocket = "/run/phpfpm/phpfpm.sock";
     occ = pkgs.stdenv.mkDerivation {
         name = "occ";
         src = nextcloudPackage;
@@ -63,7 +63,7 @@ let
         installPhase = ''
             mkdir -p $out/bin
             makeWrapper ${pkgs.borgbackup}/bin/borg $out/bin/nextcloud-borg \
-                --set BORG_REPO "${config.homeserver.borgRepo}" \
+                --set BORG_REPO "${cfg.homeserver.borgRepo}" \
                 --set BORG_PASSCOMMAND "cat ${secrets.getPath "backup/nextcloud"}" \
                 --set BORG_RSH "ssh -i ${secrets.getPath "backup/key"} -o StrictHostKeyChecking=no"
         '';
@@ -87,7 +87,7 @@ let
     extraConfig = pkgs.writeText "nextcloud-extra.json" ''
         {
             "system": {
-                "trusted_domains": ${builtins.toJSON (builtins.attrNames config.homeserver.hostnames)},
+                "trusted_domains": ${builtins.toJSON (builtins.attrNames cfg.homeserver.hostnames)},
                 "trusted_proxies": [ "127.0.0.1" ],
                 "memcache.local": "\\OC\\Memcache\\APCu",
                 "memcache.distributed" => "\OC\Memcache\Redis",
@@ -201,9 +201,9 @@ in
             "initial/password"
             "postgresql/nextcloud"
         ]);
-        config = { pkgs, lib, ... }: {
-            time.timeZone = config.homeserver.timeZone;
-            system.stateVersion = config.system.stateVersion;
+        config = { config, pkgs, lib, ... }: {
+            time.timeZone = cfg.homeserver.timeZone;
+            system.stateVersion = cfg.system.stateVersion;
             boot.tmpOnTmpfs = true;
 
             services.nginx = {
@@ -220,7 +220,7 @@ in
                 upstreams = {
                     phpfpm = {
                         servers = {
-                            "unix:${phpFpmSocket}" = {
+                            "unix:${config.services.phpfpm.pools.www.socket}" = {
                                 backup = false;
                             };
                         };
@@ -314,29 +314,29 @@ in
             services.phpfpm.phpPackage = customPHP;
             services.phpfpm.pools = {
                 www = {
-                    listen = phpFpmSocket;
                     user = "nginx";
                     group = "nginx";
-                    extraConfig = ''
-                        listen.owner = nginx
-                        listen.group = nginx
-                        pm = dynamic
-                        pm.max_children = 50
-                        pm.start_servers = 10
-                        pm.min_spare_servers = 10
-                        pm.max_spare_servers = 20
-                        pm.max_requests = 100
-
-                        php_admin_value[display_errors] = Off
-                        php_admin_value[session.save_path] = /var/lib/nextcloud/sessions
-                        php_admin_value[session.save_handler] = files
-
-                        env[NEXTCLOUD_CONFIG_DIR] = "/var/lib/nextcloud/config"
-                        env[PATH] = /run/current-system/sw/bin/
-                        env[TMP] = /tmp
-                        env[TMPDIR] = /tmp
-                        env[TEMP] = /tmp
-                    '';
+                    phpPackage = customPHP;
+                    phpEnv = {
+                        NEXTCLOUD_CONFIG_DIR = "/var/lib/nextcloud/config";
+                        PATH = "/run/current-system/sw/bin/";
+                        TMP = "/tmp";
+                        TMPDIR = "/tmp";
+                        TEMP = "/tmp";
+                    };
+                    settings = {
+                        "pm" = "dynamic";
+                        "pm.max_children" = 50;
+                        "pm.start_servers" = 10;
+                        "pm.min_spare_servers" = 10;
+                        "pm.max_spare_servers" = 20;
+                        "pm.max_requests" = 100;
+                        "php_admin_value[display_errors]" = "Off";
+                        "php_admin_value[session.save_path]" = "/var/lib/nextcloud/sessions";
+                        "php_admin_value[session.save_handler]" = "files";
+                        "listen.owner" = "nginx";
+                        "listen.group" = "nginx";
+                    };
                 };
             };
 
@@ -410,7 +410,7 @@ in
             BORG_RSH = "ssh -i ${secrets.getPath "backup/key"} -o StrictHostKeyChecking=no";
         };
         paths = [ "/var/lib/nextcloud" ];
-        repo = config.homeserver.borgRepo;
+        repo = cfg.homeserver.borgRepo;
         preHook = ''
             ${pkgs.nixos-container}/bin/nixos-container run nextcloud -- occ maintenance:mode --on
             sleep 15
