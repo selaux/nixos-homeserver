@@ -20,7 +20,7 @@ let
         '';
 
     };
-    nextcloudPackage = pkgs.nextcloud21;
+    nextcloudPackage = pkgs.nextcloud22;
     occ = pkgs.stdenv.mkDerivation {
         name = "occ";
         src = nextcloudPackage;
