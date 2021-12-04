@@ -45,6 +45,16 @@ let
             makeWrapper ${pkgs.sudo}/bin/sudo $out/bin/nextcloud-cron --add-flags "-u nginx $out/bin/.nextcloud-cron-needs-sudo"
         '';
     };
+    cronThumbnails = pkgs.stdenv.mkDerivation {
+        name = "nexcloud-cron-thumbnails";
+        src = nextcloudPackage;
+        buildInputs = [ pkgs.makeWrapper ];
+        buildPhase = ''true'';
+        installPhase = ''
+            mkdir -p $out/bin
+            makeWrapper ${occ}/bin/occ $out/bin/nextcloud-cron-thumbnails --add-flags "preview:pre-generate"
+        '';
+    };
     nextcloudBorg = pkgs.stdenv.mkDerivation {
         name = "nextcloud-borg";
         src = pkgs.borgbackup;
@@ -333,6 +343,7 @@ in
             environment.systemPackages = [
                 occ
                 cron
+                cronThumbnails
                 bootstapScript
                 backupDbScript
                 restoreDbScript
@@ -342,6 +353,7 @@ in
                 enable = true;
                 systemCronJobs = [
                     "*/15 * * * * root ${cron}/bin/nextcloud-cron"
+                    "*/15 * * * * root ${cronThumbnails}/bin/nextcloud-cron-thumbnails"
                 ];
             };
 
