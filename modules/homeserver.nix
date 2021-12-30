@@ -1,43 +1,44 @@
 { config, lib, pkgs, ... }: {
-    imports = [
-        ./load-balancer.nix
-        ./nextcloud.nix
-    ];
+  imports = [
+    ./load-balancer.nix
+    ./nextcloud.nix
+  ];
 
-    options = with lib; let
-        hostnamesOption = mkOption {
-            type = types.attrsOf (types.submodule {
-                options = {
-                    acme = mkOption {
-                        type = types.bool;
-                        description = "Get certificate via ACME on startup else use self-signed.";
-                    };
-                    primary = mkOption {
-                        type = types.bool;
-                        description = "Is this the primary hostname that secondary hostnames should be redirected to?";
-                        default = false;
-                    };
-                };
-            });
+  options = with lib; let
+    hostnamesOption = mkOption {
+      type = types.attrsOf (types.submodule {
+        options = {
+          acme = mkOption {
+            type = types.bool;
+            description = "Get certificate via ACME on startup else use self-signed.";
+          };
+          primary = mkOption {
+            type = types.bool;
+            description = "Is this the primary hostname that secondary hostnames should be redirected to?";
+            default = false;
+          };
         };
-    in {
-        homeserver = {
-            timeZone = mkOption {
-                type = types.str;
-                description = "Timezone the server is in.";
-            };
-
-            hostnames = hostnamesOption;
-            secondaryHostnames = hostnamesOption;
-
-            borgRepo = mkOption {
-                type = types.str;
-                description = "Borg repository where backups are stored.";
-            };
-        };
+      });
     };
+  in
+  {
+    homeserver = {
+      timeZone = mkOption {
+        type = types.str;
+        description = "Timezone the server is in.";
+      };
 
-    config = {
-        time.timeZone = config.homeserver.timeZone;
+      hostnames = hostnamesOption;
+      secondaryHostnames = hostnamesOption;
+
+      borgRepo = mkOption {
+        type = types.str;
+        description = "Borg repository where backups are stored.";
+      };
     };
+  };
+
+  config = {
+    time.timeZone = config.homeserver.timeZone;
+  };
 }
