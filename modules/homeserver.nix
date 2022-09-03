@@ -2,6 +2,7 @@
   imports = [
     ./load-balancer.nix
     ./nextcloud.nix
+    ./samba.nix
   ];
 
   options = with lib; let
@@ -30,6 +31,10 @@
 
       hostnames = hostnamesOption;
       secondaryHostnames = hostnamesOption;
+      smbShare = mkOption {
+        type = types.path;
+        description = "A smb share directory provided within the local network";
+      };
 
       borgRepo = mkOption {
         type = types.str;
