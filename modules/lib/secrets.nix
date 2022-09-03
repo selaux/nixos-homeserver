@@ -5,6 +5,6 @@ rec {
       isReadOnly = true;
     })
     secrets);
-  getPath = secret: "/etc/secrets/${secret}";
+  getPath = secret: "/var/keys/${secret}";
   getBash = secret: "$(cat ${getPath secret})";
 }

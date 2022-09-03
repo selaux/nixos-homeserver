@@ -14,7 +14,7 @@ let
       forceSSL = true;
       locations = {
         "/" = {
-          proxyPass = "http://127.0.0.1:8080";
+          proxyPass = "http://127.0.0.1:${if v.proxyTo == "nextcloud" then "8080" else "4180"}";
         };
       };
     } // (sslValues n v)))
@@ -22,7 +22,7 @@ let
   redirect = hostnames: (lib.mapAttrs'
     (n: v: lib.nameValuePair n ({
       forceSSL = true;
-      globalRedirect = builtins.head (builtins.attrNames (lib.filterAttrs (n: v: v.primary) config.homeserver.hostnames));
+      globalRedirect = builtins.head (builtins.attrNames (lib.filterAttrs (n: v: v.primary && v.proxyTo == "nextcloud") config.homeserver.hostnames));
     } // (sslValues n v)))
     hostnames);
 in

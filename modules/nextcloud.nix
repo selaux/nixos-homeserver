@@ -1,5 +1,8 @@
 { config, lib, pkgs, ... }:
 let
+  domains = builtins.attrNames config.homeserver.hostnames;
+  isPrimaryNextcloudDomain = d: config.homeserver.hostnames.${d}.primary && config.homeserver.hostnames.${d}.proxyTo == "nextcloud";
+  primaryDomain = lib.findFirst isPrimaryNextcloudDomain null domains;
   cfg = config;
   customPHP = pkgs.php81.buildEnv {
     extensions = { enabled, all }: (lib.unique (enabled ++ [ all.opcache all.redis all.apcu all.imagick ]));
@@ -92,6 +95,8 @@ let
                     'writable' => true,
                 ),
             ),
+            'htaccess.RewriteBase' => '/',
+            'overwrite.cli.url' => 'https://${primaryDomain}',
         );
     '';
   extraConfig = pkgs.writeText "nextcloud-extra.json" ''
@@ -123,6 +128,7 @@ let
     ${installAndEnable "contacts"}
     ${installAndEnable "notes"}
     ${installAndEnable "bookmarks"}
+    ${installAndEnable "oidc"}
     ${occ}/bin/occ app:disable activity || echo "Error, probably already disabled";
   '';
   bootstapScript = pkgs.writeScriptBin "nextcloud-bootstrap" ''

@@ -3,6 +3,7 @@
     ./load-balancer.nix
     ./nextcloud.nix
     ./samba.nix
+    ./jellyfin.nix
   ];
 
   options = with lib; let
@@ -18,6 +19,13 @@
             description = "Is this the primary hostname that secondary hostnames should be redirected to?";
             default = false;
           };
+          proxyTo = mkOption {
+            type = types.enum [
+              "nextcloud"
+              "jellyfin"
+            ];
+            description = "Where to proxy the hostname to.";
+          };
         };
       });
     };
@@ -31,9 +39,33 @@
 
       hostnames = hostnamesOption;
       secondaryHostnames = hostnamesOption;
+
       smbShare = mkOption {
         type = types.str;
         description = "A smb share directory provided within the local network";
+      };
+
+      jellyfin = mkOption {
+        type = types.submodule {
+          options = {
+            clientID = mkOption {
+              type = types.str;
+              description = "OIDC client id to use for OIDC proxy for jellyfin";
+            };
+            clientSecret = mkOption {
+              type = types.str;
+              description = "OIDC client secret to use for OIDC proxy for jellyfin";
+            };
+            cookieSecret = mkOption {
+              type = types.str;
+              description = "Cookie secret to use for OIDC proxy for jellyfin";
+            };
+            mediaDirs = mkOption {
+              type = types.listOf types.str;
+              description = "Media directories for jellyfin";
+            };
+          };
+        };
       };
 
       borgRepo = mkOption {
