@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config;
-  customPHP = pkgs.php80.buildEnv {
+  customPHP = pkgs.php81.buildEnv {
     extensions = { enabled, all }: (lib.unique (enabled ++ [ all.opcache all.redis all.apcu all.imagick ]));
     extraConfig = ''
       memory_limit = 2048M
@@ -20,7 +20,7 @@ let
     '';
 
   };
-  nextcloudPackage = pkgs.nextcloud22;
+  nextcloudPackage = pkgs.nextcloud24;
   occ = pkgs.stdenv.mkDerivation {
     name = "occ";
     src = nextcloudPackage;
