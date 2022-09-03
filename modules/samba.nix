@@ -7,7 +7,7 @@
     autoStart = true;
     privateNetwork = false;
     bindMounts = {
-      config.homeserver.smbShare = {
+      "${config.homeserver.smbShare}" = {
         hostPath = config.homeserver.smbShare;
         isReadOnly = false;
       };

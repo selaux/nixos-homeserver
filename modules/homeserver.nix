@@ -32,7 +32,7 @@
       hostnames = hostnamesOption;
       secondaryHostnames = hostnamesOption;
       smbShare = mkOption {
-        type = types.path;
+        type = types.str;
         description = "A smb share directory provided within the local network";
       };
 
