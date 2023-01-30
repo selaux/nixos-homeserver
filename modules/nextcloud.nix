@@ -7,14 +7,14 @@ let
   customPHP = pkgs.php81.buildEnv {
     extensions = { enabled, all }: (lib.unique (enabled ++ [ all.opcache all.redis all.apcu all.imagick ]));
     extraConfig = ''
-      memory_limit = 2048M
+      memory_limit = 4096M
 
       [opcache]
       opcache.enable=1
       opcache.enable_cli=1
       opcache.interned_strings_buffer=8
       opcache.max_accelerated_files=10000
-      opcache.memory_consumption=256
+      opcache.memory_consumption=512
       opcache.save_comments=1
       opcache.revalidate_freq=1
 
@@ -23,7 +23,7 @@ let
     '';
 
   };
-  nextcloudPackage = pkgs.nextcloud24;
+  nextcloudPackage = pkgs.nextcloud25;
   occ = pkgs.stdenv.mkDerivation {
     name = "occ";
     src = nextcloudPackage;

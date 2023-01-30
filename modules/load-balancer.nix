@@ -27,7 +27,7 @@ let
     hostnames);
 in
 {
-  networking.firewall.allowedTCPPorts = [ 80 443 ];
+  networking.firewall.allowedTCPPorts = [ 80 443 8096 ];
 
   services.nginx = {
     enable = true;
