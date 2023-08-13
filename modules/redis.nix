@@ -12,7 +12,7 @@
       system.stateVersion = config.system.stateVersion;
       time.timeZone = config.homeserver.timeZone;
 
-      services.redis = {
+      services.redis.servers."" = {
         enable = true;
         bind = "127.0.0.1";
       };

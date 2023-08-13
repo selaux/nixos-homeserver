@@ -23,7 +23,7 @@ let
     '';
 
   };
-  nextcloudPackage = pkgs.nextcloud25;
+  nextcloudPackage = pkgs.nextcloud27;
   occ = pkgs.stdenv.mkDerivation {
     name = "occ";
     src = nextcloudPackage;
@@ -115,6 +115,15 @@ let
             "auth.bruteforce.protection.enabled": true
         }
     }
+  '';
+  nginxHeaders = pkgs.writeText "nginx-headers.conf" ''
+    add_header Referrer-Policy                   "no-referrer"       always;
+    add_header X-Content-Type-Options            "nosniff"           always;
+    add_header X-Download-Options                "noopen"            always;
+    add_header X-Frame-Options                   "SAMEORIGIN"        always;
+    add_header X-Permitted-Cross-Domain-Policies "none"              always;
+    add_header X-Robots-Tag                      "noindex, nofollow" always;
+    add_header X-XSS-Protection                  "1; mode=block"     always;
   '';
   installAndEnable = app: ''
     ${occ}/bin/occ app:install ${app} || echo "Error, probably already installed";
@@ -220,7 +229,7 @@ in
     config = { config, pkgs, lib, ... }: {
       time.timeZone = cfg.homeserver.timeZone;
       system.stateVersion = cfg.system.stateVersion;
-      boot.tmpOnTmpfs = true;
+      boot.tmp.useTmpfs = true;
 
       services.nginx = {
         enable = true;
@@ -232,9 +241,15 @@ in
           fastcgi_cache_key "$scheme$request_method$host$request_uri";
 
           server_names_hash_bucket_size 64;
+
+          # Set the `immutable` cache control options only for assets with a cache busting `v` argument
+          map $arg_v $asset_immutable {
+              "" "";
+              default "immutable";
+          }
         '';
         upstreams = {
-          phpfpm = {
+          "php-handler" = {
             servers = {
               "unix:${config.services.phpfpm.pools.www.socket}" = {
                 backup = false;
@@ -250,71 +265,98 @@ in
               { addr = "127.0.0.1"; port = 8080; }
             ];
             extraConfig = ''
-              add_header X-Content-Type-Options nosniff;
-              add_header X-XSS-Protection "1; mode=block";
-              add_header X-Robots-Tag none;
-              add_header X-Download-Options noopen;
-              add_header X-Permitted-Cross-Domain-Policies none;
-              add_header Referrer-Policy same-origin;
-              add_header X-Frame-Options "SAMEORIGIN" always;
+              include ${nginxHeaders};
 
-              location = /.well-known/carddav {
-                  return 301 $scheme://$host/remote.php/dav;
-              }
-              location = /.well-known/caldav {
-                  return 301 $scheme://$host/remote.php/dav;
-              }
-              location / {
-                  rewrite ^ /index.php$request_uri;
+              index index.php index.html /index.php$request_uri;
+
+              location = / {
+                if ( $http_user_agent ~ ^DavClnt ) {
+                  return 302 /remote.php/webdav/$is_args$args;
+                }
               }
 
-              location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)/ {
-                  deny all;
-              }
-              location ~ ^/(?:\.|autotest|occ|issue|indie|db_|console) {
-                  deny all;
+              location = /robots.txt {
+                allow all;
+                log_not_found off;
+                access_log off;
               }
 
-              location ~ ^/(?:index|remote|public|cron|core/ajax/update|status|ocs/v[12]|updater/.+|ocs-provider/.+)\.php(?:$|/) {
-                  fastcgi_split_path_info ^(.+\.php)(/.*)$;
+              # Make a regex exception for `/.well-known` so that clients can still
+              # access it despite the existence of the regex rule
+              # `location ~ /(\.|autotest|...)` which would otherwise handle requests
+              # for `/.well-known`.
+              location ^~ /.well-known {
+                # The rules in this block are an adaptation of the rules
+                # in `.htaccess` that concern `/.well-known`.
+
+                location = /.well-known/carddav { return 301 https://$host/remote.php/dav/; }
+                location = /.well-known/caldav  { return 301 https://$host/remote.php/dav/; }
+                location = /.well-known/webfinger  { return 301 https://$host/index.php$request_uri; }
+                location = /.well-known/nodeinfo  { return 301 https://$host/index.php$request_uri; }
+
+                location /.well-known/acme-challenge    { try_files $uri $uri/ =404; }
+                location /.well-known/pki-validation    { try_files $uri $uri/ =404; }
+
+                # Let Nextcloud's API for `/.well-known` URIs handle all other
+                # requests by passing them to the front-end controller.
+                return 301 https://$host/index.php$request_uri;
+              }
+
+              location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)(?:$|/)  { return 404; }
+              location ~ ^/(?:\.|autotest|occ|issue|indie|db_|console)                { return 404; }
+
+              # Ensure this block, which passes PHP files to the PHP process, is above the blocks
+              # which handle static assets (as seen below). If this block is not declared first,
+              # then Nginx will encounter an infinite rewriting loop when it prepends `/index.php`
+              # to the URI, resulting in a HTTP 500 error response.
+              location ~ \.php(?:$|/) {
+                  # Required for legacy support
+                  rewrite ^/(?!index|remote|public|cron|core\/ajax\/update|status|ocs\/v[12]|updater\/.+|oc[ms]-provider\/.+|.+\/richdocumentscode\/proxy) /index.php$request_uri;
+
+                  fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+                  set $path_info $fastcgi_path_info;
+
+                  try_files $fastcgi_script_name =404;
+
                   include ${pkgs.nginx}/conf/fastcgi_params;
                   fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-                  fastcgi_param PATH_INFO $fastcgi_path_info;
-                  #fastcgi_param HTTPS on;
-                  #Avoid sending the security headers twice
-                  fastcgi_param modHeadersAvailable true;
-                  fastcgi_param front_controller_active true;
-                  fastcgi_pass phpfpm;
+                  fastcgi_param PATH_INFO $path_info;
+                  fastcgi_param HTTPS on;
+
+                  fastcgi_param modHeadersAvailable true;         # Avoid sending the security headers twice
+                  fastcgi_param front_controller_active true;     # Enable pretty urls
+                  fastcgi_pass php-handler;
+
                   fastcgi_intercept_errors on;
                   fastcgi_request_buffering off;
 
+                  fastcgi_max_temp_file_size 0;
                   fastcgi_cache NEXTCLOUD;
               }
 
-              location ~ ^/(?:updater|ocs-provider)(?:$|/) {
-                  try_files $uri/ =404;
-                  index index.php;
+              location ~ \.(?:css|js|svg|gif|png|jpg|ico|wasm|tflite|map)$ {
+                try_files $uri /index.php$request_uri;
+                add_header Cache-Control "public, max-age=15778463, $asset_immutable";
+                access_log off;     # Optional: Don't log access to assets
+
+                location ~ \.wasm$ {
+                  default_type application/wasm;
+                }
               }
 
-              # Adding the cache control header for js and css files
-              # Make sure it is BELOW the PHP block
-              location ~ \.(?:css|js|woff|svg|gif)$ {
-                  try_files $uri /index.php$uri$is_args$args;
-                  add_header Cache-Control "public, max-age=15778463";
-                  add_header X-Content-Type-Options nosniff;
-                  add_header X-XSS-Protection "1; mode=block";
-                  add_header X-Robots-Tag none;
-                  add_header X-Download-Options noopen;
-                  add_header X-Permitted-Cross-Domain-Policies none;
-                  add_header X-Frame-Options "SAMEORIGIN" always;
-                  # Optional: Don't log access to assets
-                  access_log off;
+              location ~ \.woff2?$ {
+                try_files $uri /index.php$request_uri;
+                expires 7d;         # Cache-Control policy borrowed from `.htaccess`
+                access_log off;     # Optional: Don't log access to assets
               }
 
-              location ~ \.(?:png|html|ttf|ico|jpg|jpeg)$ {
-                  try_files $uri /index.php$uri$is_args$args;
-                  # Optional: Don't log access to other assets
-                  access_log off;
+              # Rule borrowed from `.htaccess`
+              location /remote {
+                return 301 /remote.php$request_uri;
+              }
+
+              location / {
+                try_files $uri $uri/ /index.php$request_uri;
               }
             '';
           };
@@ -364,6 +406,7 @@ in
         bootstapScript
         backupDbScript
         restoreDbScript
+        pkgs.nodejs-18_x
       ];
 
       services.cron = {
