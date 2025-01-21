@@ -7,7 +7,7 @@ in
 {
   virtualisation.oci-containers.containers.jellyfin = {
     autoStart = true;
-    image = "lscr.io/linuxserver/jellyfin:amd64-10.8.9";
+    image = "lscr.io/linuxserver/jellyfin:amd64-${pkgs.jellyfin.version}";
     volumes = ["/var/lib/jellyfin:/config"] ++ map (d: "${d}:${d}:ro") config.homeserver.jellyfin.mediaDirs; 
     extraOptions = ["--device=/dev/dri/card0:/dev/dri/card0" "--device=/dev/dri/renderD128:/dev/dri/renderD128"];
     ports = ["8096:8096"];

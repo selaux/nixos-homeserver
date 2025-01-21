@@ -20,23 +20,25 @@
         enable = true;
         securityType = "user";
         openFirewall = true;
-        extraConfig = ''
-          server string = NAS
-          workgroup = WORKGROUP
+        settings = {
+          global = {
+            "server string" = "NAS";
+            "workgroup" = "WORKGROUP";
 
-          map to guest = bad user
-          guest account = sambaguest
-
-          [nas]
-          path = ${config.homeserver.smbShare}
-          public = yes
-          only guest = yes
-          writable = yes
-          printable = no
-          browseable = yes
-          create mask = 0664
-          force create mode = 0664
-        '';
+            "map to guest" = "bad user";
+            "guest account" = "sambaguest";
+          };
+          nas = {
+            "path" = config.homeserver.smbShare;
+            "public" = "yes";
+            "only guest" = "yes";
+            "writable" = "yes";
+            "printable" = "no";
+            "browseable" = "yes";
+            "create mask" = "0664";
+            "force create mode" = "0664";
+          };
+        };
       };
 
       users.users.sambaguest = {

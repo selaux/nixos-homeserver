@@ -4,15 +4,15 @@ let
   isPrimaryNextcloudDomain = d: config.homeserver.hostnames.${d}.primary && config.homeserver.hostnames.${d}.proxyTo == "nextcloud";
   primaryDomain = lib.findFirst isPrimaryNextcloudDomain null domains;
   cfg = config;
-  customPHP = pkgs.php81.buildEnv {
-    extensions = { enabled, all }: (lib.unique (enabled ++ [ all.opcache all.redis all.apcu all.imagick ]));
+  customPHP = pkgs.php83.buildEnv {
+    extensions = { enabled, all }: (lib.unique (enabled ++ [ all.opcache all.redis all.apcu all.imagick all.bz2 ]));
     extraConfig = ''
       memory_limit = 4096M
 
       [opcache]
       opcache.enable=1
       opcache.enable_cli=1
-      opcache.interned_strings_buffer=8
+      opcache.interned_strings_buffer=32
       opcache.max_accelerated_files=10000
       opcache.memory_consumption=512
       opcache.save_comments=1
@@ -23,7 +23,7 @@ let
     '';
 
   };
-  nextcloudPackage = pkgs.nextcloud27;
+  nextcloudPackage = pkgs.nextcloud30;
   occ = pkgs.stdenv.mkDerivation {
     name = "occ";
     src = nextcloudPackage;
@@ -104,6 +104,7 @@ let
         "system": {
             "trusted_domains": ${builtins.toJSON (builtins.attrNames cfg.homeserver.hostnames)},
             "trusted_proxies": [ "127.0.0.1" ],
+            "forwarded_for_headers": [ "HTTP_X_FORWARDED_FOR", "HTTP_X_REAL_IP" ],
             "memcache.local": "\\OC\\Memcache\\APCu",
             "memcache.distributed" => "\OC\Memcache\Redis",
             "memcache.locking" => "\OC\Memcache\Redis",
@@ -334,7 +335,15 @@ in
                   fastcgi_cache NEXTCLOUD;
               }
 
-              location ~ \.(?:css|js|svg|gif|png|jpg|ico|wasm|tflite|map)$ {
+              location ~* \.(?:js|mjs)$ {
+                types { 
+                    text/javascript js mjs;
+                } 
+                try_files $uri /index.php$request_uri;
+                add_header Cache-Control "public, max-age=15778463, $asset_immutable";
+                access_log off;
+              }
+              location ~ \.(?:css|svg|gif|png|jpg|ico|wasm|tflite|map)$ {
                 try_files $uri /index.php$request_uri;
                 add_header Cache-Control "public, max-age=15778463, $asset_immutable";
                 access_log off;     # Optional: Don't log access to assets
@@ -412,8 +421,8 @@ in
       services.cron = {
         enable = true;
         systemCronJobs = [
-          "*/10 * * * * root ${cron}/bin/nextcloud-cron"
-          "*/10 * * * * root ${cronThumbnails}/bin/nextcloud-cron-thumbnails"
+          "*/5 * * * * root ${cron}/bin/nextcloud-cron"
+          "*/5 * * * * root ${cronThumbnails}/bin/nextcloud-cron-thumbnails"
           "0    2 * * * root ${cronAppUpdates}/bin/nextcloud-cron-app-updates"
         ];
       };
